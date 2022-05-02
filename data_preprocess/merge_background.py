@@ -16,7 +16,7 @@ for folder in folders:
     backgrounds = []
     masks = []
     for file in files:
-        image = np.asarray(Image.open(osp(folder, "image/{}.jpg".format(file.strip())))).astype(np.float32) / 255
+        image = np.asarray(Image.open(osp(folder, "image/{}.png".format(file.strip())))).astype(np.float32) / 255
         mask = Image.open(osp(folder, "segmentation/{}.png".format(file.strip()))).convert("RGB")
         mask = np.asarray(mask).astype(np.float32) / 255
         background = (1 - mask) * image

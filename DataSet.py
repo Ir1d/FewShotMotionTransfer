@@ -29,7 +29,7 @@ class BaseDataSet(dataset.Dataset):
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.config['resize'], self.config['resize']]
-            resize = transforms.Resize(size, Image.NEAREST)
+            resize = transforms.Resize(size, transforms.InterpolationMode.NEAREST)
             for i in range(len(images)):
                 images[i] = resize(images[i])
 
@@ -66,7 +66,8 @@ class ReconstructDataSet(BaseDataSet):
         for i, folder in enumerate(self.folders):
             with open(os.path.join(folder, list_name)) as f:
                 filelist = f.readlines()
-                filelist.sort(key=int)
+                filelist.sort(key=lambda x: int(x.replace('\n', '').replace('image', '')))
+                # filelist.sort(key=int)
                 filelist = [(x.strip(), i) for x in filelist]
                 self.filelist += filelist
                 self.filelists.append(filelist)
@@ -84,12 +85,12 @@ class ReconstructDataSet(BaseDataSet):
         folder = self.folders[label]
 
         if self.stage == 'pretrain' or self.stage == 'train':
-            image = self.loader(os.path.join(folder, "image", name+".jpg"), mode="RGB")
+            image = self.loader(os.path.join(folder, "image", name+".png"), mode="RGB")
             body = self.loader(os.path.join(folder, "body", name+".png"), mode="L")
             foreground = self.loader(os.path.join(folder, "segmentation", name+".png"), mode="L")
             image_index = random.randrange(0, len(self.filelists[label]))
             image_name = self.filelists[label][image_index][0]
-            class_image = self.loader(os.path.join(folder, "image", image_name+".jpg"), mode="RGB")
+            class_image = self.loader(os.path.join(folder, "image", image_name+".png"), mode="RGB")
             class_foreground = self.loader(os.path.join(folder, "segmentation", image_name+".png"), mode="L")
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
             IUV = self.loader(os.path.join(folder, "densepose", name+"_IUV.png"), mode="RGB")
@@ -98,10 +99,18 @@ class ReconstructDataSet(BaseDataSet):
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
 
-            data["mask"] = data["IUV"][-1,:,:]
+            # data["IUV"] = data["IUV"][::-1, :, :] # wrong channel from densepose @ scott
+            # print(-1, data["IUV"][-1, :, :].max())
+            # print(0, data["IUV"][0, :, :].max())
+            # print(1, data["IUV"][1, :, :].max())
+            data["mask"] = data["IUV"][0,:,:]
             data["foreground"] = (data["foreground"] > 0).to(torch.long)
             data["U"] = data["IUV"][1,:,:].unsqueeze(0).to(torch.float32)/self.config["URange"]
-            data["V"] = data["IUV"][0,:,:].unsqueeze(0).to(torch.float32)/self.config["VRange"]
+            data["V"] = data["IUV"][2,:,:].unsqueeze(0).to(torch.float32)/self.config["VRange"]
+            # data["mask"] = data["IUV"][-1,:,:]
+            # data["foreground"] = (data["foreground"] > 0).to(torch.long)
+            # data["U"] = data["IUV"][1,:,:].unsqueeze(0).to(torch.float32)/self.config["URange"]
+            # data["V"] = data["IUV"][0,:,:].unsqueeze(0).to(torch.float32)/self.config["VRange"]
             data.pop("IUV")
 
         if self.stage == 'pretrain_texture':
@@ -186,7 +195,7 @@ class TransferDataSet(BaseDataSet):
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.config['resize'], self.config['resize']]
-            resize = transforms.Resize(size, Image.NEAREST)
+            resize = transforms.Resize(size, transforms.InterpolationMode.NEAREST)
             for i in range(len(images)):
                 images[i] = resize(images[i])
 
@@ -213,10 +222,10 @@ class TransferDataSet(BaseDataSet):
         root = self.root
         src_root = self.src_root
 
-        image = self.loader(os.path.join(root, "image", name + ".jpg"), mode="RGB")
+        image = self.loader(os.path.join(root, "image", name + ".png"), mode="RGB")
         body = self.loader(os.path.join(root, "body", name + ".png"), mode="L")
         foreground = self.loader(os.path.join(root, "segmentation", name + ".png"), mode="L")
-        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".jpg"), mode="RGB")
+        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".png"), mode="RGB")
         class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".png"), mode="L")
         class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[0] + ".png"), mode="L")
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground], [False, False, True, True, True, True])

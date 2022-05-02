@@ -92,7 +92,7 @@ class Model(nn.Module):
         self.texture_stack = nn.Parameter(texture)
         self.texture_feature = []
         self.background = nn.Parameter(background)
-        self.background_start = background
+        self.background_start = nn.Parameter(background, requires_grad=False)
         self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack, self.background], lr=self.lr_T, betas=(0.5, 0.999))
 
     def _encode_label(self, label_map, nc, dropout, dropout_all):
@@ -295,6 +295,7 @@ class Model(nn.Module):
         target_V = data["V"].expand(-1,24,-1,-1)
         target_coordinate = torch.cat((target_U, target_V), dim=1)
         coordinate_per_pixel_loss = self.L1Loss(coordinate, target_coordinate)
+        # print(data["mask"].max())
         label_mask = self._encode_label(data["mask"].unsqueeze(1), 24, 1.0, 1.0).repeat(1,2,1,1).to(torch.float32)
         coordinate_diff = (coordinate_per_pixel_loss*label_mask).sum(dim=1)
         coordinate_loss = coordinate_diff.mean()

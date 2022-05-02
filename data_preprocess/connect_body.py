@@ -7,9 +7,10 @@ from os.path import join as osp
 import glob
 import argparse
 
-def create_pose(root_path):
+def create_pose(root_path, pose_folder):
 
     def drawline(label_map, p1, p2, threshold, label, thickness):
+        # print(p1, p2[:2])
         if p1[2] > threshold and p2[2] > threshold:
             cv2.line(label_map, tuple(p1[:2]), tuple(p2[:2]), label, thickness)
         elif p1[2] > threshold:
@@ -25,7 +26,8 @@ def create_pose(root_path):
 
     os.system("mkdir -p {}".format(os.path.join(root_path, "body")))
     result = {}
-    threshold = 0.2
+    threshold = 0
+    # threshold = 0.2
     body_connect = [(0, 15), (0, 16), (15, 17), (16, 18), (0, 1), (1, 2), (1, 5), (1, 8), (2, 9), (5, 12), (8, 9), (8, 12),
                     (2, 3), (3, 4), (5, 6), (6, 7), (9, 10), (10, 11), (11, 24), (11, 22), (22, 23), (12, 13), (13, 14),
                     (14, 21), (14, 19), (19, 20)]
@@ -34,26 +36,40 @@ def create_pose(root_path):
     foot_index = [11, 14, 19, 20, 21, 22, 23, 24]
     images_path = os.listdir(osp(root_path, "image"))
     images_path.sort()
+    # print(images_path)
     frame = cv2.imread(osp(root_path, "image", images_path[0]))
     height = frame.shape[0]
     width = frame.shape[1]
     for j, image_path in tqdm(enumerate(images_path), total=len(images_path)):
-        if image_path.find("jpg") == -1:
+        # print(image_path.find("jpg"))
+        if image_path.find("jpg") == -1 and image_path.find("png") == -1:
             continue
         name = image_path[:-4]
-
-        with open(os.path.join(root_path, "json", "{}_keypoints.json".format(name))) as f:
-            item = json.load(f)
-        people = item["people"]
-        if len(people) == 0:
+        try:
+            data = np.load(os.path.join(pose_folder, f"{name}.npy"))
+        except:
             continue
+        data[data<0] = 0
+        # print(data)
+        data = data.astype(np.uint32)
+        data[2] = 1
+        # print(data[:3])
+        # print(data.shape)
+        # with open(os.path.join(root_path, "json", "{}_keypoints.json".format(name))) as f:
+        #     item = json.load(f)
+        # people = item["people"]
+        # if 1 == 0:
+        #     continue
 
-        scale = np.zeros(len(people), dtype=np.float32)
-        up = np.zeros(len(people), dtype=np.float32)
-        bottom = np.zeros(len(people), dtype=np.float32)
+        scale = np.zeros(1, dtype=np.float32)
+        up = np.zeros(1, dtype=np.float32)
+        bottom = np.zeros(1, dtype=np.float32)
 
-        for k, points in enumerate(people):
-            body_point = points["pose_keypoints_2d"]
+        for k, points in enumerate([data]):
+            
+            # print(body_point)
+            body_point = points
+            # body_point = points["pose_keypoints_2d"]
             head_center = np.zeros(2, dtype=np.float32)
             count = 0
             for i in head_index:
@@ -83,11 +99,12 @@ def create_pose(root_path):
             bottom[k] = foot_center[1]
 
         k = np.argmax(scale)
-        points = people[k]
+        # points = people[k]
+        # points = data
 
         body_label = np.zeros((height, width), dtype=np.uint8)
 
-        body_point = points["pose_keypoints_2d"]
+        body_point = points # ["pose_keypoints_2d"]
         for i in range(len(body_point) // 3):
             body_point[3 * i] = int(max(body_point[3 * i], 0))
             body_point[3 * i + 1] = int(body_point[3 * i + 1])
@@ -99,11 +116,12 @@ def create_pose(root_path):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("root")
+parser.add_argument("--root")
+parser.add_argument("--pose_folder")
 args = parser.parse_args()
 
-root_paths = glob.glob(osp(args.root, "*"))
+# root_paths = glob.glob(osp(args.root, "*"))
 
-for root_path in root_paths:
-    print(root_path)
-    create_pose(root_path)
+# for root_path in root_paths:
+#     print(root_path)
+create_pose(args.root, args.pose_folder)

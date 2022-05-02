@@ -35,7 +35,7 @@ def create_finetune_set(root, samples=20):
 
     for name in filelist:
         name = name.strip()
-        shutil.copyfile(os.path.join(folder, "image", name + ".jpg"), os.path.join(newfolder, "image", name + ".jpg"))
+        shutil.copyfile(os.path.join(folder, "image", name + ".png"), os.path.join(newfolder, "image", name + ".png"))
         shutil.copyfile(os.path.join(folder, "body", name + ".png"), os.path.join(newfolder, "body", name + ".png"))
         shutil.copyfile(os.path.join(folder, "densepose", name + "_IUV.png"), os.path.join(newfolder, "densepose", name + "_IUV.png"))
         shutil.copyfile(os.path.join(folder, "texture", name+".png"), os.path.join(newfolder, "texture", name+".png"))
@@ -51,7 +51,9 @@ def create_finetune_set(root, samples=20):
 def finetune(config, writer, device_idxs=[0]):
 
     config['phase'] = 'train'
-    newroot = create_finetune_set(config['source_root'], config['finetune_sample'])
+    newroot = config['source_root']+"_finetune"
+    # newroot = create_finetune_set(config['source_root'], config['finetune_sample'])
+
     dataset = ReconstructDataSet(newroot, config, list_name="image_list.txt")
     data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=16, pin_memory=True, shuffle=True, drop_last=False)
 
@@ -64,10 +66,11 @@ def finetune(config, writer, device_idxs=[0]):
     model = Model(config, "finetune")
     iter_loader = iter(data_loader)
     model.prepare_for_finetune(next(iter_loader), background)
-    device = torch.device("cuda:" + str(device_idxs[0]))
-    model = model.to(device)
-    model.background_start = model.background_start.to(device)
     model = DataParallel(model, device_idxs)
+    device = torch.device("cuda")
+    # model.background_start = model.background_start.to(device)
+    # device = torch.device("cuda:" + str(device_idxs[0]))
+    model = model.to(device)
     model.train()
 
     totol_step = 0
@@ -76,10 +79,14 @@ def finetune(config, writer, device_idxs=[0]):
         for i, data in iterator:
 
             data_gpu = {key: item.to(device) for key, item in data.items()}
+            # for key, item in data.items():
+            #     print(key, item.shape)
             mask, fake_image, textures, body, cordinate, background, losses = model(data_gpu, "finetune")
-
+            # for ww in mask, fake_image, textures, body, cordinate, background:
+            #     print(ww.shape)
             for key, item in losses.items():
                 losses[key] = item.mean()
+                # print(losses[key].shape)
                 writer.add_scalar("Loss/"+key, losses[key], totol_step)
 
             if totol_step < config['finetune_coor_step']:
@@ -180,7 +187,7 @@ if __name__ == '__main__':
         config['target_root'] = args.target_root
 
     if config['output_name'] is None:
-        config['output_name'] = "src_{}_to_{}.mp4".format(os.path.normpath(config['source_root']), os.path.normpath(config['target_root']))
+        config['output_name'] = "src_{}_to_{}_{}.mp4".format(os.path.normpath(config['source_root']), os.path.normpath(config['target_root']), config['epochs'])
 
     writer = SummaryWriter(log_dir=os.path.join(config['checkpoint_path'], config["name"], "finetune", config["output_name"][:-4]), comment=config['name'])
     model = finetune(config, writer, args.device)

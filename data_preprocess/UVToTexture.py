@@ -31,8 +31,10 @@ args = parser.parse_args()
 
 folders = glob(osp(args.root, "*"))
 for root in folders:
+    if not os.path.isdir(root):
+        continue
     print(root)
-    image_path_list = [x for x in os.listdir(osp(root, "image")) if x.endswith("jpg")]
+    image_path_list = [x for x in os.listdir(osp(root, "image")) if x.endswith("png")]
     mask = np.zeros((128*4, 128*6), dtype=np.float32) + 1e-8
     Textures = np.zeros((128*4, 128*6, 3), dtype=np.float32)
     if not os.path.exists(os.path.join(root, "texture")):
@@ -43,6 +45,7 @@ for root in folders:
             continue
         im = cv2.imread(osp(root, "image", image_path))
         IUV = cv2.imread(IUV_path)
+        IUV = IUV[:, :, ::-1]
         texture = GetTexture(im, IUV,)
         out_path = osp(root, "texture", image_path[:-4] + ".png")
         cv2.imwrite(out_path, texture)

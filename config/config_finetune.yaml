@@ -4,9 +4,11 @@ output_name:
 output_folder: video
 checkpoint_path: checkpoint
 name: selfatt                           # name of checkpoint
-finetune_sample: 20
+finetune_sample: -1
+# finetune_sample: 20
 
-batchsize: 6
+batchsize: 64
+# batchsize: 6
 epochs: 1
 finetune_coor_step: 60                  # steps of finetuning geometry generator
 lr: 0.0002                              # learning rate of finetuning geometry generator
