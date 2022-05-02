@@ -26,8 +26,8 @@ def create_pose(root_path, pose_folder):
 
     os.system("mkdir -p {}".format(os.path.join(root_path, "body")))
     result = {}
-    threshold = 0
-    # threshold = 0.2
+    # threshold = 0
+    threshold = 0.2
     body_connect = [(0, 15), (0, 16), (15, 17), (16, 18), (0, 1), (1, 2), (1, 5), (1, 8), (2, 9), (5, 12), (8, 9), (8, 12),
                     (2, 3), (3, 4), (5, 6), (6, 7), (9, 10), (10, 11), (11, 24), (11, 22), (22, 23), (12, 13), (13, 14),
                     (14, 21), (14, 19), (19, 20)]
@@ -49,10 +49,11 @@ def create_pose(root_path, pose_folder):
             data = np.load(os.path.join(pose_folder, f"{name}.npy"))
         except:
             continue
+        if data[0] > 0 and data[1] > 0:
+            data[2] = 1
         data[data<0] = 0
         # print(data)
         data = data.astype(np.uint32)
-        data[2] = 1
         # print(data[:3])
         # print(data.shape)
         # with open(os.path.join(root_path, "json", "{}_keypoints.json".format(name))) as f:

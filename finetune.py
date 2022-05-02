@@ -17,8 +17,8 @@ def create_finetune_set(root, samples=20):
     '''Sample images from the source person and create a small dataset for finetuning'''
     root = os.path.normpath(root)
     newroot = root+"_finetune"
-    if os.path.exists(newroot):
-        os.system("rm -r "+newroot)
+    # if os.path.exists(newroot):
+    #     os.system("rm -r "+newroot)
     folder = root
     newfolder = os.path.join(folder.replace(root, newroot), "001")
 
@@ -126,7 +126,7 @@ def finetune(config, writer, device_idxs=[0]):
             writer.add_images("Background", torch.clamp(background, 0, 1), totol_step, dataformats="NCHW")
 
     torch.cuda.empty_cache()
-    os.system("rm -r "+newroot)
+    # os.system("rm -r "+newroot)
     return model
 
 
@@ -143,6 +143,8 @@ def inference(model, config, device_idxs=[0]):
     folder = os.path.join(config["output_folder"], config["name"])
     if not os.path.exists(folder):
         os.system("mkdir -p "+folder)
+    out_video_fname = os.path.join(folder, config['output_name'])
+    print(out_video_fname)
     writer = cv2.VideoWriter(os.path.join(folder, config['output_name']), fourcc, 24, (image_size*3, image_size))
 
     with torch.no_grad():
@@ -186,8 +188,8 @@ if __name__ == '__main__':
     if args.target_root is not None:
         config['target_root'] = args.target_root
 
-    if config['output_name'] is None:
-        config['output_name'] = "src_{}_to_{}_{}.mp4".format(os.path.normpath(config['source_root']), os.path.normpath(config['target_root']), config['epochs'])
+    # if config['output_name'] is None:
+    config['output_name'] = "src_{}_to_{}_{}.mp4".format(os.path.normpath(config['source_root']).replace('/', '_'), os.path.normpath(config['target_root']).replace('/', '_'), config['epochs'])
 
     writer = SummaryWriter(log_dir=os.path.join(config['checkpoint_path'], config["name"], "finetune", config["output_name"][:-4]), comment=config['name'])
     model = finetune(config, writer, args.device)

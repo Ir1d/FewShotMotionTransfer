@@ -7,7 +7,8 @@ name: selfatt                           # name of checkpoint
 finetune_sample: -1
 # finetune_sample: 20
 
-batchsize: 64
+batchsize: 80
+# batchsize: 64
 # batchsize: 6
 epochs: 1
 finetune_coor_step: 60                  # steps of finetuning geometry generator

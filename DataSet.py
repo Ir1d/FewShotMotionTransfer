@@ -163,14 +163,14 @@ class TransferDataSet(BaseDataSet):
 
         with open(os.path.join(root, list_name)) as f:
             filelist = f.readlines()
-            filelist.sort(key=int)
+            filelist.sort(key=lambda x: int(x.replace('\n', '').replace('image', '')))
             filelist = [x.strip() for x in filelist]
             self.filelist = filelist
         self.src_root = src_root
 
         with open(os.path.join(src_root, list_name)) as f:
             filelist = f.readlines()
-            filelist.sort(key=int)
+            filelist.sort(key=lambda x: int(x.replace('\n', '').replace('image', '')))
             filelist = [x.strip() for x in filelist]
             self.src_filelist = filelist
 
