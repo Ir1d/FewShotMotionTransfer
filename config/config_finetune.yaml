@@ -19,6 +19,7 @@ lr_milestone:                           # steps of learning rate decay
 
 phase: finetune
 background: background.png
+# pretrain_name: src_data-train_001_to_data-transfer_001_300.pth
 pretrain_name: latest_train
 
 resize: 256                             # size of image/pose
@@ -27,8 +28,8 @@ hflip: false
 URange: 256
 VRange: 256
 
-display: false
-display_freq: 250
+display: true
+display_freq: 10
 
 body_nc: 26
 

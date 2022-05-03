@@ -229,6 +229,7 @@ class Model(nn.Module):
         prob_mask, fake_image = self.get_image(mask, coordinate, texture)
         mask_foreground = 1 - prob_mask[:, 0].unsqueeze(1).expand(-1, 3, -1, -1).to(torch.float32)
 
+        # print(fake_image.shape, self.background.shape)
         pre_image = mask_foreground * fake_image + (1 - mask_foreground) * self.background.expand_as(fake_image)
 
         losses = self.create_loss_finetune(mask, data["foreground"], pre_image, data['image'])

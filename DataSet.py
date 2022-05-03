@@ -28,8 +28,8 @@ class BaseDataSet(dataset.Dataset):
     def _transform(self, images, tolabel):
         if 'resize' in self.config:
             old_size, _ = images[0].size
-            size = [self.config['resize'], self.config['resize']]
-            resize = transforms.Resize(size, transforms.InterpolationMode.NEAREST)
+            # size = [self.config['resize'], self.config['resize']]
+            resize = transforms.Resize([160, 288], transforms.InterpolationMode.NEAREST)
             for i in range(len(images)):
                 images[i] = resize(images[i])
 
@@ -194,8 +194,8 @@ class TransferDataSet(BaseDataSet):
     def _transform(self, images, tolabel):
         if 'resize' in self.config:
             old_size, _ = images[0].size
-            size = [self.config['resize'], self.config['resize']]
-            resize = transforms.Resize(size, transforms.InterpolationMode.NEAREST)
+            # size = [self.config['resize'], self.config['resize']]
+            resize = transforms.Resize([160, 288], transforms.InterpolationMode.NEAREST)
             for i in range(len(images)):
                 images[i] = resize(images[i])
 

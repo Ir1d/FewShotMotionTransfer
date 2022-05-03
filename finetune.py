@@ -48,7 +48,7 @@ def create_finetune_set(root, samples=20):
     return newroot
 
 
-def finetune(config, writer, device_idxs=[0]):
+def finetune(config, writer, device_idxs=[0], fname='./model.pth', load_only=False):
 
     config['phase'] = 'train'
     newroot = config['source_root']+"_finetune"
@@ -60,17 +60,24 @@ def finetune(config, writer, device_idxs=[0]):
     background = Image.open(os.path.join(config['source_root'], config['background']))
 
     image_size = config['resize']
-    background = background.resize((image_size, image_size))
+    print(background.size)
+    background = background.resize((288, 160))
+    print(background.size)
     background = torch.from_numpy(np.asarray(background).transpose((2, 0, 1)).astype(np.float32)/255).unsqueeze(0)
 
     model = Model(config, "finetune")
     iter_loader = iter(data_loader)
-    model.prepare_for_finetune(next(iter_loader), background)
+    if load_only:
+        model.restore_network()
+    else:
+        model.prepare_for_finetune(next(iter_loader), background)
     model = DataParallel(model, device_idxs)
     device = torch.device("cuda")
     # model.background_start = model.background_start.to(device)
     # device = torch.device("cuda:" + str(device_idxs[0]))
     model = model.to(device)
+    if load_only:
+        return model
     model.train()
 
     totol_step = 0
@@ -101,8 +108,9 @@ def finetune(config, writer, device_idxs=[0]):
             model.module.optimizer_texture_stack.step()
             writer.add_scalar("Loss/G", loss_G, totol_step)
             totol_step+=1
+        model.module.save(fname)
 
-        if config['display'] and epoch % config['display_frep'] == 0:
+        if config['display'] and epoch % config['display_freq'] == 0:
             body_sum = body.sum(dim=1, keepdim=True)
             B, _, H, W = cordinate.size()
             cordinate_zero = torch.zeros((B, 1, H, W), dtype=torch.float32, device=cordinate.device)
@@ -178,6 +186,7 @@ if __name__ == '__main__':
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--source_root", default=None)
     parser.add_argument("--target_root", default=None)
+    parser.add_argument("--load", action="store_true")
     args = parser.parse_args()
     with open(args.config) as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
@@ -192,5 +201,5 @@ if __name__ == '__main__':
     config['output_name'] = "src_{}_to_{}_{}.mp4".format(os.path.normpath(config['source_root']).replace('/', '_'), os.path.normpath(config['target_root']).replace('/', '_'), config['epochs'])
 
     writer = SummaryWriter(log_dir=os.path.join(config['checkpoint_path'], config["name"], "finetune", config["output_name"][:-4]), comment=config['name'])
-    model = finetune(config, writer, args.device)
+    model = finetune(config, writer, args.device, config['output_name'].replace('.mp4', '.pth'), load_only=args.load)
     inference(model, config, args.device)
